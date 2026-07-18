@@ -1,29 +1,23 @@
 import { buildConfig } from 'payload'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import { seoPlugin } from '@payloadcms/plugin-seo'
-import { s3Storage } from '@payloadcms/storage-s3'
-import { Services } from './collections/Services'
-import { BlogPosts } from './collections/BlogPosts'
-import { TeamMembers } from './collections/TeamMembers'
-import { Pages } from './collections/Pages'
-import { Media } from './collections/Media'
-import { Testimonials } from './collections/Testimonials'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(filename)
 
 export default buildConfig({
-  serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000',
   admin: {
     user: 'users',
-    meta: {
-      titleSuffix: '— MetroTec CMS',
-    },
   },
-  editor: lexicalEditor({}),
+  editor: lexicalEditor(),
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URI,
+      connectionString: process.env.DATABASE_URI || '',
     },
   }),
+  secret: process.env.PAYLOAD_SECRET || 'DEFAULT_SECRET_CHANGE_ME',
   collections: [
     {
       slug: 'users',
@@ -31,34 +25,53 @@ export default buildConfig({
       admin: { useAsTitle: 'email' },
       fields: [
         { name: 'name', type: 'text' },
-        { name: 'role', type: 'select', options: ['admin', 'editor', 'viewer'], defaultValue: 'editor' },
+        { name: 'role', type: 'select', options: ['admin', 'editor'], defaultValue: 'editor' },
       ],
     },
-    Services,
-    BlogPosts,
-    TeamMembers,
-    Pages,
-    Media,
-    Testimonials,
+    {
+      slug: 'pages',
+      admin: { useAsTitle: 'title' },
+      fields: [
+        { name: 'title', type: 'text', required: true },
+        { name: 'slug', type: 'text', unique: true },
+        { name: 'content', type: 'richText' },
+        { name: 'status', type: 'select', options: ['draft', 'published'], defaultValue: 'draft' },
+      ],
+    },
+    {
+      slug: 'services',
+      admin: { useAsTitle: 'title' },
+      fields: [
+        { name: 'title', type: 'text', required: true },
+        { name: 'slug', type: 'text', unique: true },
+        { name: 'category', type: 'select', options: ['managed-it', 'cybersecurity', 'cloud', 'voip', 'backup', 'consulting'] },
+        { name: 'excerpt', type: 'textarea' },
+        { name: 'content', type: 'richText' },
+        { name: 'status', type: 'select', options: ['draft', 'published'], defaultValue: 'draft' },
+      ],
+    },
+    {
+      slug: 'blog-posts',
+      admin: { useAsTitle: 'title' },
+      fields: [
+        { name: 'title', type: 'text', required: true },
+        { name: 'slug', type: 'text', unique: true },
+        { name: 'excerpt', type: 'textarea' },
+        { name: 'content', type: 'richText' },
+        { name: 'category', type: 'select', options: ['cybersecurity', 'cloud', 'managed-it', 'backup', 'voip', 'compliance'] },
+        { name: 'publishedDate', type: 'date' },
+        { name: 'status', type: 'select', options: ['draft', 'published'], defaultValue: 'draft' },
+      ],
+    },
+    {
+      slug: 'media',
+      upload: true,
+      fields: [
+        { name: 'alt', type: 'text', required: true },
+      ],
+    },
   ],
-  plugins: [
-    seoPlugin({
-      collections: ['blog-posts', 'pages', 'services'],
-      uploadsCollection: 'media',
-      generateTitle: ({ doc }) => `${doc.title} | MetroTec IT Solutions`,
-      generateDescription: ({ doc }) => doc.excerpt || '',
-    }),
-    s3Storage({
-      collections: { media: true },
-      bucket: process.env.S3_BUCKET || 'metrotec-www',
-      config: {
-        region: process.env.S3_REGION || 'us-east-1',
-        credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
-          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
-        },
-      },
-    }),
-  ],
-  typescript: { outputFile: './src/payload-types.ts' },
+  typescript: {
+    outputFile: path.resolve(dirname, 'payload-types.ts'),
+  },
 })
