@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "payload build",
+  "env": {
+    "DATABASE_URI": "@database-uri",
+    "PAYLOAD_SECRET": "@payload-secret",
+    "S3_BUCKET": "metrotec-www",
+    "S3_REGION": "us-east-1",
+    "S3_ACCESS_KEY_ID": "@s3-access-key",
+    "S3_SECRET_ACCESS_KEY": "@s3-secret-key"
+  }
+}
